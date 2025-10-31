@@ -11,7 +11,9 @@ import LoginModal from './components/LoginModal.js';
 import Toast from './components/Toast.js';
 import ReadingProgressBar from './components/ReadingProgressBar.js';
 import SearchModal from './components/SearchModal.js';
+import Chatbot from './components/Chatbot.js';
 import { POSTS, COURSES, NAV_LINKS, QUIZZ_DATA } from './constants.js';
+import { GoogleGenAI } from "@google/genai";
 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'liberdade';
@@ -43,6 +45,13 @@ const App = () => {
   const [loginError, setLoginError] = useState(null);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Chatbot State
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'model', content: 'Olá! Sou o assistente do blog Liberdade Digital. Como posso te ajudar a ter sucesso no marketing digital hoje?' }
+  ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -118,6 +127,46 @@ const App = () => {
     
     updateMetaTags(title, description, imageUrl);
   }, [currentPage, selectedPost]);
+
+  const handleSendMessageToAI = async (message) => {
+    if (!process.env.API_KEY) {
+      setChatMessages(prev => [...prev, { role: 'model', content: 'Desculpe, a chave da API Gemini não foi configurada. Não consigo responder agora.' }]);
+      return;
+    }
+    
+    const newMessage = { role: 'user', content: message };
+    setChatMessages(prev => [...prev, newMessage]);
+    setIsChatLoading(true);
+
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        const chatHistoryForAPI = chatMessages.map(({ role, content }) => ({
+            role: role === 'model' ? 'model' : 'user',
+            parts: [{ text: content }]
+        }));
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [{text: message}],
+            },
+            config: {
+                systemInstruction: "Você é um assistente prestativo para o blog 'Liberdade Digital'. Seu objetivo é responder a perguntas sobre vendas online, marketing digital, produtividade e liberdade financeira, com base no conteúdo e no tom do blog. Seja encorajador, prático e direto ao ponto.",
+            }
+        });
+        
+        const modelResponse = response.text;
+        setChatMessages(prev => [...prev, { role: 'model', content: modelResponse }]);
+
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        setChatMessages(prev => [...prev, { role: 'model', content: 'Desculpe, ocorreu um erro ao tentar me comunicar com a IA. Por favor, tente novamente mais tarde.' }]);
+    } finally {
+        setIsChatLoading(false);
+    }
+  };
+
 
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
@@ -290,6 +339,11 @@ const App = () => {
       renderPage()
     ),
     React.createElement(Footer, null),
+    React.createElement(Chatbot, {
+      messages: chatMessages,
+      onSendMessage: handleSendMessageToAI,
+      isLoading: isChatLoading
+    }),
     toast && React.createElement(Toast, { message: toast.message, type: toast.type, onClose: () => setToast(null) }),
     React.createElement(EditPostModal, {
       isOpen: isEditPostModalOpen,
@@ -313,5 +367,3 @@ const App = () => {
 };
 
 export default App;
-
-
