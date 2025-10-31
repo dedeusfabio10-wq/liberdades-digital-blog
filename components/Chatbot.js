@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import ChatIcon from './icons/ChatIcon.js';
 import CloseIcon from './icons/CloseIcon.js';
@@ -44,7 +45,7 @@ const Chatbot = ({ messages, onSendMessage, isLoading }) => {
   const renderMessage = (msg, index) => {
     return React.createElement('div', { key: index, className: `flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}` },
       React.createElement('div', { className: `max-w-xs md:max-w-sm px-4 py-2 rounded-xl ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'}` },
-        React.createElement('div', { className: "prose prose-sm dark:prose-invert max-w-none" },
+        React.createElement('div', { className: "prose prose-sm dark:prose-invert max-w-none prose-p:text-sm prose-headings:text-base" },
           React.createElement(ReactMarkdown, { remarkPlugins: [remarkGfm] }, msg.content)
         )
       )
